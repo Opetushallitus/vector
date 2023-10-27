@@ -1,6 +1,4 @@
 sources:
-  default:
-    type: stdin
   splunk:
     type: splunk_hec
   audit:
@@ -36,9 +34,9 @@ sources:
       - /logs/kayttooikeus*.log
       - /logs/*-console.log
     multiline:
-      start_pattern: '(^\d+-\d+-\d+.\d+:\d+:\d+.\d+\+?\d?\d?:?\d?\d?|^\[.*\])'
+      start_pattern: '^\d+-\d+-\d+.\d+:\d+:\d+.\d+\+?\d?\d?:?\d?\d?'
       mode: halt_before
-      condition_pattern: '(^\d+-\d+-\d+.\d+:\d+:\d+.\d+\+?\d?\d?:?\d?\d?|^\[.*\])'
+      condition_pattern: '^\d+-\d+-\d+.\d+:\d+:\d+.\d+\+?\d?\d?:?\d?\d?'
       timeout_ms: 1000
 
   
@@ -50,6 +48,8 @@ transforms:
       .service = get_env_var!("SERVICE")
       .environment = get_env_var!("ENVIRONMENT")
       .type = "app"
+      .containerid = parse_regex!(get_env_var!("ECS_CONTAINER_METADATA_URI"), r'(?P<containerid>[0-9a-fA-F]{32}-\d+)')
+      .containerid = values(.containerid)[0]
     inputs:
       - app
 
@@ -59,6 +59,8 @@ transforms:
       .service = get_env_var!("SERVICE")
       .environment = get_env_var!("ENVIRONMENT")
       .type = "audit"
+      .containerid = parse_regex!(get_env_var!("ECS_CONTAINER_METADATA_URI"), r'(?P<containerid>[0-9a-fA-F]{32}-\d+)')
+      .containerid = values(.containerid)[0]
     inputs:
       - audit
   
@@ -68,6 +70,8 @@ transforms:
       .service = get_env_var!("SERVICE")
       .environment = get_env_var!("ENVIRONMENT")
       .type = "access"
+      .containerid = parse_regex!(get_env_var!("ECS_CONTAINER_METADATA_URI"), r'(?P<containerid>[0-9a-fA-F]{32}-\d+)')
+      .containerid = values(.containerid)[0]
     inputs:
       - access
 
@@ -77,6 +81,8 @@ transforms:
       .service = get_env_var!("SERVICE")
       .environment = get_env_var!("ENVIRONMENT")
       .type = "debug"
+      .containerid = parse_regex!(get_env_var!("ECS_CONTAINER_METADATA_URI"), r'(?P<containerid>[0-9a-fA-F]{32}-\d+)')
+      .containerid = values(.containerid)[0]
     inputs:
       - debug
   
@@ -86,8 +92,9 @@ transforms:
       .service = get_env_var!("SERVICE")
       .environment = get_env_var!("ENVIRONMENT")
       .type = "app"
+      .containerid = parse_regex!(get_env_var!("ECS_CONTAINER_METADATA_URI"), r'(?P<containerid>[0-9a-fA-F]{32}-\d+)')
+      .containerid = values(.containerid)[0]
     inputs:
-      - default
       - splunk
 
 sinks:
@@ -96,6 +103,6 @@ sinks:
       - "*-add-host"
     type: aws_cloudwatch_logs
     group_name: "{{ environment }}-{{ type }}-{{ service }}"
-    stream_name: "{{ host }}"
+    stream_name: "{{ containerid }}"
     encoding:
-      codec: "text"
+      codec: text
