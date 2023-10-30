@@ -105,4 +105,4 @@ sinks:
     group_name: "{{ environment }}-{{ type }}-{{ service }}"
     stream_name: "{{ containerid }}"
     encoding:
-      codec: text
+      codec: json
